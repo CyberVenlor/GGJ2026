@@ -22,7 +22,7 @@ public class PlayerController : MonoBehaviour
     public float groundRadius = 0.2f;
     public LayerMask groundLayer;
 
-    private Rigidbody2D _rb;
+    private Rigidbody _rb;
     private bool _isGrounded;
     private float _moveInput;
     private bool _jumpQueued;
@@ -34,7 +34,7 @@ public class PlayerController : MonoBehaviour
 
     private void Awake()
     {
-        _rb = GetComponent<Rigidbody2D>();
+        _rb = GetComponent<Rigidbody>();
         _stateMachine = new StateMachine<PlayerState>();
         _idleState = new IdleState(this);
         _walkState = new WalkState(this);
@@ -110,7 +110,7 @@ public class PlayerController : MonoBehaviour
         if (_jumpQueued && _isGrounded)
         {
             _rb.linearVelocity = new Vector2(_rb.linearVelocity.x, 0f);
-            _rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+            _rb.AddForce(Vector2.up * jumpForce, ForceMode.Impulse);
         }
 
         _jumpQueued = false;

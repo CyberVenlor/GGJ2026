@@ -105,17 +105,17 @@ public class PlayerController : MonoBehaviour
     private void FixedUpdate()
     {
         _isGrounded = groundCheck != null &&
-                      Physics2D.OverlapCircle(groundCheck.position, groundRadius, groundLayer);
+                      Physics.CheckSphere(groundCheck.position, groundRadius, groundLayer);
 
         if (_jumpQueued && _isGrounded)
         {
-            _rb.linearVelocity = new Vector2(_rb.linearVelocity.x, 0f);
-            _rb.AddForce(Vector2.up * jumpForce, ForceMode.Impulse);
+            _rb.linearVelocity = new Vector3(_rb.linearVelocity.x, 0f, _rb.linearVelocity.z);
+            _rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
         }
 
         _jumpQueued = false;
 
-        Vector2 velocity = _rb.linearVelocity;
+        Vector3 velocity = _rb.linearVelocity;
         velocity.x = _moveInput * moveSpeed;
         if (_isGrounded)
         {

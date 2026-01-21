@@ -97,8 +97,8 @@ CapsuleCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: -0.019847572, y: -0.0070739686}
-  m_Size: {x: 0.27462494, y: 0.341317}
+  m_Offset: {x: 0, y: -0.0070739686}
+  m_Size: {x: 0.25989777, y: 0.341317}
   m_Direction: 0
 --- !u!114 &2383619804610009849
 MonoBehaviour:
@@ -119,10 +119,10 @@ MonoBehaviour:
   idleTrigger: Idle
   walkTrigger: Walk
   groundCheck: {fileID: 8517161730746564662}
-  groundRadius: 0.01
+  groundRadius: 0.05
   groundLayer:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 8
 --- !u!1 &4753031176603554151
 GameObject:
   m_ObjectHideFlags: 0
@@ -148,7 +148,7 @@ Transform:
   m_GameObject: {fileID: 4753031176603554151}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.016, y: -0.201, z: 0}
+  m_LocalPosition: {x: 0, y: -0.201, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

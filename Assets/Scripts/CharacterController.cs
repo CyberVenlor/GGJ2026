@@ -28,13 +28,14 @@ public class PlayerController : MonoBehaviour
     private bool _jumpQueued;
     private InputAction _moveAction;
     private InputAction _jumpAction;
-    private PlayerState _currentState;
+    private StateMachine<PlayerState> _stateMachine;
     private IdleState _idleState;
     private WalkState _walkState;
 
     private void Awake()
     {
         _rb = GetComponent<Rigidbody2D>();
+        _stateMachine = new StateMachine<PlayerState>();
         _idleState = new IdleState(this);
         _walkState = new WalkState(this);
         _idleState.Awake();
@@ -60,9 +61,9 @@ public class PlayerController : MonoBehaviour
 
     private void OnDisable()
     {
-        if (_currentState != null)
+        if (_stateMachine != null && _stateMachine.CurrentState != null)
         {
-            _currentState.Exit();
+            _stateMachine.CurrentState.Exit();
         }
 
         if (_jumpAction != null)
@@ -95,9 +96,9 @@ public class PlayerController : MonoBehaviour
             transform.localScale = scale;
         }
 
-        if (_currentState != null)
+        if (_stateMachine != null && _stateMachine.CurrentState != null)
         {
-            _currentState.Update();
+            _stateMachine.CurrentState.Update();
         }
     }
 
@@ -122,9 +123,9 @@ public class PlayerController : MonoBehaviour
         }
         
 
-        if (_currentState != null)
+        if (_stateMachine != null && _stateMachine.CurrentState != null)
         {
-            _currentState.FixedUpdate();
+            _stateMachine.CurrentState.FixedUpdate();
         }
     }
 
@@ -148,18 +149,12 @@ public class PlayerController : MonoBehaviour
 
     private void ChangeState(PlayerState nextState)
     {
-        if (nextState == null || _currentState == nextState)
+        if (_stateMachine == null)
         {
             return;
         }
 
-        if (_currentState != null)
-        {
-            _currentState.Exit();
-        }
-
-        _currentState = nextState;
-        _currentState.Enter();
+        _stateMachine.ChangeState(nextState);
     }
 
     private void SetAnimatorTrigger(string triggerToSet, string triggerToReset)
@@ -176,22 +171,6 @@ public class PlayerController : MonoBehaviour
         }
 
         animator.SetTrigger(triggerToSet);
-    }
-
-    private abstract class PlayerState
-    {
-        protected readonly PlayerController Controller;
-
-        protected PlayerState(PlayerController controller)
-        {
-            Controller = controller;
-        }
-
-        public virtual void Awake() { }
-        public virtual void Enter() { }
-        public virtual void Exit() { }
-        public virtual void Update() { }
-        public virtual void FixedUpdate() { }
     }
 
     private sealed class IdleState : PlayerState

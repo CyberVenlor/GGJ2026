@@ -22,6 +22,7 @@ public class PlayerController : MonoBehaviour
     public float groundRayDistance = 1f;
     public LayerMask groundRayLayer;
     public float groundRotateSpeed = 360f;
+    public float jumpAngleLimit = 30f;
 
     private Rigidbody _rb;
     private bool _isGrounded;
@@ -122,7 +123,9 @@ public class PlayerController : MonoBehaviour
             targetRotation,
             groundRotateSpeed * Time.fixedDeltaTime);
 
-        if (_jumpQueued && _isGrounded)
+        float currentZ = Mathf.DeltaAngle(0f, transform.eulerAngles.z);
+        bool canJump = Mathf.Abs(currentZ) <= jumpAngleLimit;
+        if (_jumpQueued && _isGrounded && canJump)
         {
             _rb.linearVelocity = new Vector3(_rb.linearVelocity.x, 0f, _rb.linearVelocity.z);
             _rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);

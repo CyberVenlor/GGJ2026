@@ -55,7 +55,7 @@ MonoBehaviour:
   idleTrigger: Idle
   walkTrigger: Walk
   groundCheck: {fileID: 3650457053672176682}
-  groundRayDistance: 0.3
+  groundRayDistance: 0.5
   groundRayLayer:
     serializedVersion: 2
     m_Bits: 8
@@ -161,7 +161,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.29968488, y: 0.06651899, z: 0.13085938}
+  m_Size: {x: 0.22731547, y: 0.06651899, z: 0.13085938}
   m_Center: {x: 0, y: -0.08471072, z: 0}
 --- !u!1 &5975727524905052340
 GameObject:

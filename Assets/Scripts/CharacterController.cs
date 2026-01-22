@@ -18,12 +18,14 @@ public class PlayerController : MonoBehaviour
     public string walkTrigger = "Walk";
 
     [Header("Ground Check")]
-    public Transform groundCheck;
-    public float groundRadius = 0.2f;
-    public LayerMask groundLayer;
+    public Collider groundCheck;
+    public float groundRayDistance = 1f;
+    public LayerMask groundRayLayer;
+    public float groundRotateSpeed = 360f;
 
     private Rigidbody _rb;
     private bool _isGrounded;
+    private int _groundContacts;
     private float _moveInput;
     private bool _jumpQueued;
     private InputAction _moveAction;
@@ -104,8 +106,21 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        _isGrounded = groundCheck != null &&
-                      Physics.CheckSphere(groundCheck.position, groundRadius, groundLayer);
+        _isGrounded = _groundContacts > 0;
+
+        float targetAngle = 0f;
+        if (TryGetGroundNormal(out Vector3 groundNormal))
+        {
+            targetAngle = -Mathf.Atan2(groundNormal.x, groundNormal.y) * Mathf.Rad2Deg;
+        }
+
+        Vector3 rotation = transform.eulerAngles;
+        rotation.z = targetAngle;
+        Quaternion targetRotation = Quaternion.Euler(rotation);
+        transform.rotation = Quaternion.RotateTowards(
+            transform.rotation,
+            targetRotation,
+            groundRotateSpeed * Time.fixedDeltaTime);
 
         if (_jumpQueued && _isGrounded)
         {
@@ -142,7 +157,75 @@ public class PlayerController : MonoBehaviour
         }
 
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(groundCheck.position, groundRadius);
+        Gizmos.DrawWireCube(groundCheck.bounds.center, groundCheck.bounds.size);
+    }
+
+    private bool TryGetGroundNormal(out Vector3 normal)
+    {
+        normal = Vector3.up;
+
+        RaycastHit[] hits = Physics.RaycastAll(
+            transform.position,
+            Vector3.down,
+            groundRayDistance,
+            groundRayLayer,
+            QueryTriggerInteraction.Ignore);
+
+        if (hits.Length == 0)
+        {
+            return false;
+        }
+
+        Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        foreach (RaycastHit hit in hits)
+        {
+            Collider hitCollider = hit.collider;
+            if (hitCollider == null)
+            {
+                continue;
+            }
+
+            if (hitCollider.attachedRigidbody == _rb || hitCollider.transform.IsChildOf(transform))
+            {
+                continue;
+            }
+
+            normal = hit.normal;
+            return true;
+        }
+
+        return false;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (groundCheck == null || other == null)
+        {
+            return;
+        }
+
+        if (other.attachedRigidbody == _rb || other.transform.IsChildOf(transform))
+        {
+            return;
+        }
+
+        _groundContacts++;
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (groundCheck == null || other == null)
+        {
+            return;
+        }
+
+        if (other.attachedRigidbody == _rb || other.transform.IsChildOf(transform))
+        {
+            return;
+        }
+
+        _groundContacts = Mathf.Max(0, _groundContacts - 1);
     }
 
     public float MoveInput => _moveInput;

@@ -60,6 +60,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 8
   groundRotateSpeed: 360
+  jumpAngleLimit: 30
 --- !u!54 &29166756505057823
 Rigidbody:
   m_ObjectHideFlags: 0

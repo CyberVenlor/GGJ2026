@@ -14,12 +14,20 @@ public class RopeWaterSurface : MonoBehaviour
     [SerializeField] private float springToRest = 40f;
     [SerializeField] private float springToNeighbors = 25f;
     [SerializeField] private float damping = 4f;
+    [SerializeField] private float sideHeightOffset = 0f;
 
     [Header("Interaction")]
     [SerializeField] private float impulseScale = 1.5f;
     [SerializeField] private float impulseMax = 8f;
     [SerializeField, Range(0f, 1f)] private float neighborImpulse = 0.4f;
+    [SerializeField, Range(0f, 10f)] private float sideImpulseRandom = 0.15f;
     [SerializeField] private LayerMask affectLayers = ~0;
+
+    [Header("Buoyancy")]
+    [SerializeField] private float buoyancyStrength = 25f;
+    [SerializeField] private float buoyancyDamping = 4f;
+    [SerializeField] private float maxBuoyancyForce = 200f;
+    [SerializeField] private float buoyancySampleOffset = 0f;
 
     [Header("Rendering")]
     [SerializeField] private Material surfaceMaterial;
@@ -68,8 +76,10 @@ public class RopeWaterSurface : MonoBehaviour
         }
 
         RebuildIfNeeded(false);
-        SimulateRope(ropeNearY, ropeNearV);
-        SimulateRope(ropeFarY, ropeFarV);
+        float yRestNear = lastCenter.y + lastSize.y * 0.5f;
+        float yRestFar = yRestNear + sideHeightOffset;
+        SimulateRope(ropeNearY, ropeNearV, yRestNear);
+        SimulateRope(ropeFarY, ropeFarV, yRestFar);
     }
 
     private void LateUpdate()
@@ -147,14 +157,15 @@ public class RopeWaterSurface : MonoBehaviour
 
         float xMin = center.x - size.x * 0.5f;
         float xMax = center.x + size.x * 0.5f;
-        float yRest = center.y + size.y * 0.5f;
+        float yRestNear = center.y + size.y * 0.5f;
+        float yRestFar = yRestNear + sideHeightOffset;
 
         for (int i = 0; i < segments; i++)
         {
             float t = segments == 1 ? 0f : (float)i / (segments - 1);
             xPositions[i] = Mathf.Lerp(xMin, xMax, t);
-            ropeNearY[i] = yRest;
-            ropeFarY[i] = yRest;
+            ropeNearY[i] = yRestNear;
+            ropeFarY[i] = yRestFar;
             ropeNearV[i] = 0f;
             ropeFarV[i] = 0f;
         }
@@ -184,9 +195,10 @@ public class RopeWaterSurface : MonoBehaviour
         var surfaceUvs = new Vector2[vertCount];
         var surfaceTris = new int[(segments - 1) * 6];
 
-        var sideVerts = new Vector3[vertCount];
-        var sideUvs = new Vector2[vertCount];
-        var sideTris = new int[(segments - 1) * 6];
+        int sideVertCount = segments * 4;
+        var sideVerts = new Vector3[sideVertCount];
+        var sideUvs = new Vector2[sideVertCount];
+        var sideTris = new int[(segments - 1) * 12];
 
         for (int i = 0; i < segments; i++)
         {
@@ -194,8 +206,14 @@ public class RopeWaterSurface : MonoBehaviour
             surfaceUvs[i] = new Vector2(u, 0f);
             surfaceUvs[i + segments] = new Vector2(u, 1f);
 
+            // Near strip UVs
             sideUvs[i] = new Vector2(u, 1f);
             sideUvs[i + segments] = new Vector2(u, 0f);
+
+            // Far strip UVs
+            int farOffset = segments * 2;
+            sideUvs[farOffset + i] = new Vector2(u, 1f);
+            sideUvs[farOffset + i + segments] = new Vector2(u, 0f);
         }
 
         int tri = 0;
@@ -213,12 +231,28 @@ public class RopeWaterSurface : MonoBehaviour
             surfaceTris[tri++] = c;
             surfaceTris[tri++] = d;
 
-            sideTris[tri - 6] = a;
-            sideTris[tri - 5] = b;
-            sideTris[tri - 4] = c;
-            sideTris[tri - 3] = b;
-            sideTris[tri - 2] = d;
-            sideTris[tri - 1] = c;
+            // Near side strip
+            int sideTriBase = (i * 6);
+            sideTris[sideTriBase + 0] = a;
+            sideTris[sideTriBase + 1] = b;
+            sideTris[sideTriBase + 2] = c;
+            sideTris[sideTriBase + 3] = b;
+            sideTris[sideTriBase + 4] = d;
+            sideTris[sideTriBase + 5] = c;
+
+            // Far side strip (offset)
+            int farOffset = segments * 2;
+            int fa = farOffset + i;
+            int fb = farOffset + i + 1;
+            int fc = farOffset + i + segments;
+            int fd = farOffset + i + segments + 1;
+            int farTriBase = (segments - 1) * 6 + (i * 6);
+            sideTris[farTriBase + 0] = fa;
+            sideTris[farTriBase + 1] = fc;
+            sideTris[farTriBase + 2] = fb;
+            sideTris[farTriBase + 3] = fb;
+            sideTris[farTriBase + 4] = fc;
+            sideTris[farTriBase + 5] = fd;
         }
 
         surfaceMesh.Clear();
@@ -236,10 +270,9 @@ public class RopeWaterSurface : MonoBehaviour
         sideMesh.RecalculateNormals();
     }
 
-    private void SimulateRope(float[] y, float[] v)
+    private void SimulateRope(float[] y, float[] v, float yRest)
     {
         float dt = Time.fixedDeltaTime;
-        float yRest = lastCenter.y + lastSize.y * 0.5f;
 
         for (int i = 0; i < segments; i++)
         {
@@ -270,14 +303,20 @@ public class RopeWaterSurface : MonoBehaviour
         var surfaceVerts = surfaceMesh.vertices;
         var sideVerts = sideMesh.vertices;
 
+        int farOffset = segments * 2;
         for (int i = 0; i < segments; i++)
         {
             float x = xPositions[i];
             surfaceVerts[i] = new Vector3(x, ropeNearY[i], zNear);
             surfaceVerts[i + segments] = new Vector3(x, ropeFarY[i], zFar);
 
+            // Near side strip
             sideVerts[i] = new Vector3(x, ropeNearY[i], zNear);
             sideVerts[i + segments] = new Vector3(x, yBottom, zNear);
+
+            // Far side strip
+            sideVerts[farOffset + i] = new Vector3(x, ropeFarY[i], zFar);
+            sideVerts[farOffset + i + segments] = new Vector3(x, yBottom, zFar);
         }
 
         surfaceMesh.vertices = surfaceVerts;
@@ -316,6 +355,7 @@ public class RopeWaterSurface : MonoBehaviour
     private void OnTriggerStay(Collider other)
     {
         TrySplash(other);
+        TryBuoyancy(other);
     }
 
     private void TrySplash(Collider other)
@@ -336,6 +376,40 @@ public class RopeWaterSurface : MonoBehaviour
         ApplySplash(point, velocity);
     }
 
+    private void TryBuoyancy(Collider other)
+    {
+        if (((1 << other.gameObject.layer) & affectLayers) == 0)
+        {
+            return;
+        }
+
+        var rb = other.attachedRigidbody;
+        if (rb == null || rb.isKinematic)
+        {
+            return;
+        }
+
+        Vector3 worldPoint = other.bounds.center;
+        worldPoint.y += buoyancySampleOffset;
+        ApplyBuoyancy(worldPoint, rb);
+    }
+
+    private void ApplyBuoyancy(Vector3 worldPoint, Rigidbody rb)
+    {
+        Vector3 localPoint = transform.InverseTransformPoint(worldPoint);
+        float surfaceY = GetSurfaceHeight(localPoint);
+        float depth = surfaceY - localPoint.y;
+        if (depth <= 0f)
+        {
+            return;
+        }
+
+        float upward = depth * buoyancyStrength;
+        float damping = -rb.linearVelocity.y * buoyancyDamping;
+        float force = Mathf.Clamp(upward + damping, -maxBuoyancyForce, maxBuoyancyForce);
+        rb.AddForce(Vector3.up * force, ForceMode.Force);
+    }
+
     public void ApplySplash(Vector3 worldPoint, Vector3 worldVelocity)
     {
         if (segments < 2)
@@ -352,23 +426,62 @@ public class RopeWaterSurface : MonoBehaviour
         float t = (localPoint.x - xMin) / Mathf.Max(0.0001f, xMax - xMin);
         int index = Mathf.Clamp(Mathf.RoundToInt(t * (segments - 1)), 0, segments - 1);
 
-        float impulse = Mathf.Clamp(localVelocity.y * impulseScale, -impulseMax, impulseMax);
-        ropeNearV[index] += impulse / mass;
-        ropeFarV[index] += impulse / mass;
+        float impulse = localVelocity.y * impulseScale;
+        float nearImpulse = ApplyRandomSideImpulse(impulse);
+        float farImpulse = ApplyRandomSideImpulse(impulse);
+        nearImpulse = Mathf.Clamp(nearImpulse, -impulseMax, impulseMax);
+        farImpulse = Mathf.Clamp(farImpulse, -impulseMax, impulseMax);
+        ropeNearV[index] += nearImpulse / mass;
+        ropeFarV[index] += farImpulse / mass;
 
         if (neighborImpulse > 0f)
         {
-            float neighborKick = impulse * neighborImpulse / mass;
+            float neighborKickNear = nearImpulse * neighborImpulse / mass;
+            float neighborKickFar = farImpulse * neighborImpulse / mass;
             if (index > 0)
             {
-                ropeNearV[index - 1] += neighborKick;
-                ropeFarV[index - 1] += neighborKick;
+                ropeNearV[index - 1] += neighborKickNear;
+                ropeFarV[index - 1] += neighborKickFar;
             }
             if (index < segments - 1)
             {
-                ropeNearV[index + 1] += neighborKick;
-                ropeFarV[index + 1] += neighborKick;
+                ropeNearV[index + 1] += neighborKickNear;
+                ropeFarV[index + 1] += neighborKickFar;
             }
         }
+    }
+
+    private float ApplyRandomSideImpulse(float impulse)
+    {
+        if (sideImpulseRandom <= 0f)
+        {
+            return impulse;
+        }
+
+        float jitter = Random.Range(-sideImpulseRandom, sideImpulseRandom);
+        return impulse * (1f + jitter);
+    }
+
+    private float GetSurfaceHeight(Vector3 localPoint)
+    {
+        GetBounds(out var center, out var size);
+        float xMin = center.x - size.x * 0.5f;
+        float xMax = center.x + size.x * 0.5f;
+        float tX = (localPoint.x - xMin) / Mathf.Max(0.0001f, xMax - xMin);
+        tX = Mathf.Clamp01(tX);
+        float fIndex = tX * (segments - 1);
+        int i0 = Mathf.Clamp(Mathf.FloorToInt(fIndex), 0, segments - 1);
+        int i1 = Mathf.Clamp(i0 + 1, 0, segments - 1);
+        float lerpX = fIndex - i0;
+
+        float yNear = Mathf.Lerp(ropeNearY[i0], ropeNearY[i1], lerpX);
+        float yFar = Mathf.Lerp(ropeFarY[i0], ropeFarY[i1], lerpX);
+
+        float zNear = center.z + (nearIsPositiveZ ? size.z * 0.5f : -size.z * 0.5f);
+        float zFar = center.z - (nearIsPositiveZ ? size.z * 0.5f : -size.z * 0.5f);
+        float tZ = (localPoint.z - zNear) / Mathf.Max(0.0001f, zFar - zNear);
+        tZ = Mathf.Clamp01(tZ);
+
+        return Mathf.Lerp(yNear, yFar, tZ);
     }
 }

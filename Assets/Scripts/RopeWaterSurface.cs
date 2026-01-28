@@ -28,6 +28,8 @@ public class RopeWaterSurface : MonoBehaviour
     [SerializeField] private float buoyancyDamping = 4f;
     [SerializeField] private float maxBuoyancyForce = 200f;
     [SerializeField] private float buoyancySampleOffset = 0f;
+    [SerializeField] private float waterQuadraticDrag = 2.5f;
+    [SerializeField] private float horizontalToUpImpulse = 0.5f;
 
     [Header("Rendering")]
     [SerializeField] private Material surfaceMaterial;
@@ -396,9 +398,8 @@ public class RopeWaterSurface : MonoBehaviour
 
     private void ApplyBuoyancy(Vector3 worldPoint, Rigidbody rb)
     {
-        Vector3 localPoint = transform.InverseTransformPoint(worldPoint);
-        float surfaceY = GetSurfaceHeight(localPoint);
-        float depth = surfaceY - localPoint.y;
+        float waterTopY = GetWaterTopYWorld();
+        float depth = waterTopY - worldPoint.y;
         if (depth <= 0f)
         {
             return;
@@ -408,6 +409,37 @@ public class RopeWaterSurface : MonoBehaviour
         float damping = -rb.linearVelocity.y * buoyancyDamping;
         float force = Mathf.Clamp(upward + damping, -maxBuoyancyForce, maxBuoyancyForce);
         rb.AddForce(Vector3.up * force, ForceMode.Force);
+
+        if (waterQuadraticDrag > 0f)
+        {
+            float vx = rb.linearVelocity.x;
+            if (Mathf.Abs(vx) > 0.0001f)
+            {
+                float dragImpulse = -vx * waterQuadraticDrag;
+                rb.AddForce(Vector3.right * dragImpulse, ForceMode.Impulse);
+            }
+        }
+
+        if (horizontalToUpImpulse > 0f)
+        {
+            float vx = rb.linearVelocity.x;
+            if (Mathf.Abs(vx) > 0.0001f)
+            {
+                rb.AddForce(Vector3.up * horizontalToUpImpulse, ForceMode.Impulse);
+            }
+        }
+    }
+
+    private float GetWaterTopYWorld()
+    {
+        if (waterBounds != null)
+        {
+            return waterBounds.bounds.max.y;
+        }
+
+        GetBounds(out var center, out var size);
+        Vector3 topLocal = center + Vector3.up * size.y * 0.5f;
+        return transform.TransformPoint(topLocal).y;
     }
 
     public void ApplySplash(Vector3 worldPoint, Vector3 worldVelocity)

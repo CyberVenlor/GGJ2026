@@ -5,9 +5,8 @@ using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
-    [Header("Movement")]
-    public float moveSpeed = 6f;
-    public float jumpForce = 12f;
+    [Header("Config")]
+    public CharacterConfig config;
 
     [Header("Input Config")]
     public PlayerInputConfig playerInput;
@@ -128,14 +127,20 @@ public class PlayerController : MonoBehaviour
         if (_jumpQueued && _isGrounded && canJump)
         {
             _rb.linearVelocity = new Vector3(_rb.linearVelocity.x, 0f, _rb.linearVelocity.z);
-            _rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+            _rb.AddForce(Vector3.up * config.jumpForce, ForceMode.Impulse);
         }
 
         _jumpQueued = false;
 
         Vector3 velocity = _rb.linearVelocity;
-        velocity.x = _moveInput * moveSpeed;
-        if (_isGrounded)
+        velocity.x = _moveInput * config.moveSpeed;
+        if (!_isGrounded)
+        {
+            if (velocity.x != 0)
+            {
+                _rb.linearVelocity = new Vector3(velocity.x, _rb.linearVelocity.y, velocity.z);
+            }
+        } else
         {
             _rb.linearVelocity = velocity;
         }

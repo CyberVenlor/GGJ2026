@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[ExecuteAlways]
 public class RopeWaterSurface : MonoBehaviour
 {
     [Header("Bounds (local space)")]
@@ -61,6 +62,13 @@ public class RopeWaterSurface : MonoBehaviour
         ApplyMaterials();
     }
 
+    private void OnEnable()
+    {
+        EnsureChildren();
+        RebuildIfNeeded(true);
+        ApplyMaterials();
+    }
+
     private void OnValidate()
     {
         segments = Mathf.Max(2, segments);
@@ -72,6 +80,11 @@ public class RopeWaterSurface : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
         if (segments < 2)
         {
             return;
@@ -86,6 +99,12 @@ public class RopeWaterSurface : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (!Application.isPlaying)
+        {
+            EnsureChildren();
+            RebuildIfNeeded(false);
+        }
+
         if (surfaceMesh == null || sideMesh == null)
         {
             return;

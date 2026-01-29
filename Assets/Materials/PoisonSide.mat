@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: PoisonSide
+  m_Shader: {fileID: 4800000, guid: a7812eaccf2e44b8f9b1f30941157e34, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords:
+  - _SPECULAR_SETUP
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses:
+  - MOTIONVECTORS
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _DistortionTex:
+        m_Texture: {fileID: 2800000, guid: e18a7df837b4d498c95c4253fab81a48, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _ColorShiftSpeed: 1
+    - _ColorStrength: 0.61
+    - _DistortionScale: 10
+    - _DistortionSpeed: 4.74
+    - _DistortionStrength: 0.003
+    - _FresnelPower: 3
+    - _FresnelStrength: 0.35
+    - _Opacity: 0.42
+    - _SecondaryStrength: 0.01
+    - _UseWorldUV: 0
+    - _WorldUVScale: 0.3
+    m_Colors:
+    - _ColorA: {r: 0.19999996, g: 0.6, b: 0.9, a: 1}
+    - _ColorB: {r: 0, g: 0.29999998, b: 0.6, a: 1}
+    - _ColorTint: {r: 0.19999996, g: 0.6, b: 0.9, a: 1}
+    - _DistortionSpeed: {r: 0.05, g: 0.03, b: 0, a: 0}
+    - _DistortionSpeed2: {r: -0.02, g: 0.06, b: 0, a: 0}
+    - _DistortionTiling: {r: 1, g: 1, b: 0, a: 0}
+    - _DistortionTiling2: {r: 2.2, g: 1.8, b: 0, a: 0}
+    - _SecondarySpeed: {r: -0.03, g: 0.04, b: 0, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
+--- !u!114 &4212261416997940380
+MonoBehaviour:
+  m_ObjectHideFlags: 11
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Editor::UnityEditor.Rendering.Universal.AssetVersion
+  version: 10

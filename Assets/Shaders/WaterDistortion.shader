@@ -3,7 +3,7 @@ Shader "Custom/WaterDistortion"
     Properties
     {
         _DistortionStrength("Distortion Strength", Range(0, 0.1)) = 0.02
-        _DistortionScale("Distortion Scale", Range(0.1, 10)) = 2
+        _DistortionScale("Distortion Scale", Range(0.1, 20)) = 2
         _DistortionSpeed("Distortion Speed", Range(0, 5)) = 1.2
         _ColorTint("Color Tint", Color) = (0.2, 0.6, 0.9, 1)
         _ColorStrength("Color Strength", Range(0, 1)) = 0.35

@@ -10,7 +10,7 @@ public class RopeWaterSurface : MonoBehaviour
     [SerializeField] private bool nearIsPositiveZ = true;
 
     [Header("Rope")]
-    [SerializeField, Min(2)] private int segments = 24;
+    [SerializeField, Min(0.1f)] private float segmentsDensity = 2f;
     [SerializeField] private float mass = 1f;
     [SerializeField] private float springToRest = 40f;
     [SerializeField] private float springToNeighbors = 25f;
@@ -22,6 +22,9 @@ public class RopeWaterSurface : MonoBehaviour
     [SerializeField] private float impulseMax = 8f;
     [SerializeField, Range(0f, 1f)] private float neighborImpulse = 0.4f;
     [SerializeField, Range(0f, 10f)] private float sideImpulseRandom = 0.15f;
+    [SerializeField] private float horizontalLiftScale = 0.6f;
+    [SerializeField] private float horizontalSpeedForMaxLift = 6f;
+    [SerializeField] private float horizontalLiftMax = 1.5f;
     [SerializeField] private LayerMask affectLayers = ~0;
 
     [Header("Buoyancy")]
@@ -54,6 +57,7 @@ public class RopeWaterSurface : MonoBehaviour
     private Vector3 lastCenter;
     private Vector3 lastSize;
     private int lastSegments;
+    private int currentSegments;
 
     private void Awake()
     {
@@ -71,7 +75,7 @@ public class RopeWaterSurface : MonoBehaviour
 
     private void OnValidate()
     {
-        segments = Mathf.Max(2, segments);
+        segmentsDensity = Mathf.Max(0.1f, segmentsDensity);
         mass = Mathf.Max(0.001f, mass);
         EnsureChildren();
         RebuildIfNeeded(true);
@@ -85,12 +89,11 @@ public class RopeWaterSurface : MonoBehaviour
             return;
         }
 
-        if (segments < 2)
+        RebuildIfNeeded(false);
+        if (currentSegments < 2)
         {
             return;
         }
-
-        RebuildIfNeeded(false);
         float yRestNear = lastCenter.y + lastSize.y * 0.5f;
         float yRestFar = yRestNear + sideHeightOffset;
         SimulateRope(ropeNearY, ropeNearV, yRestNear);
@@ -161,6 +164,7 @@ public class RopeWaterSurface : MonoBehaviour
     private void RebuildIfNeeded(bool force)
     {
         GetBounds(out var center, out var size);
+        int segments = GetSegmentCount(size.x);
         if (!force && center == lastCenter && size == lastSize && segments == lastSegments)
         {
             return;
@@ -169,6 +173,7 @@ public class RopeWaterSurface : MonoBehaviour
         lastCenter = center;
         lastSize = size;
         lastSegments = segments;
+        currentSegments = segments;
 
         xPositions = new float[segments];
         ropeNearY = new float[segments];
@@ -194,8 +199,17 @@ public class RopeWaterSurface : MonoBehaviour
         CreateOrResizeMeshes();
     }
 
+    private int GetSegmentCount(float width)
+    {
+        float density = Mathf.Max(0.1f, segmentsDensity);
+        float span = Mathf.Abs(width);
+        int count = Mathf.CeilToInt(span * density) + 1;
+        return Mathf.Max(2, count);
+    }
+
     private void CreateOrResizeMeshes()
     {
+        int segments = currentSegments;
         if (surfaceMesh == null)
         {
             surfaceMesh = new Mesh();
@@ -294,6 +308,7 @@ public class RopeWaterSurface : MonoBehaviour
     private void SimulateRope(float[] y, float[] v, float yRest)
     {
         float dt = Time.fixedDeltaTime;
+        int segments = y.Length;
 
         for (int i = 0; i < segments; i++)
         {
@@ -316,6 +331,12 @@ public class RopeWaterSurface : MonoBehaviour
 
     private void UpdateMeshes()
     {
+        int segments = currentSegments;
+        if (segments < 2 || xPositions == null)
+        {
+            return;
+        }
+
         GetBounds(out var center, out var size);
         float zNear = center.z + (nearIsPositiveZ ? size.z * 0.5f : -size.z * 0.5f);
         float zFar = center.z - (nearIsPositiveZ ? size.z * 0.5f : -size.z * 0.5f);
@@ -413,6 +434,10 @@ public class RopeWaterSurface : MonoBehaviour
         Vector3 worldPoint = other.bounds.center;
         worldPoint.y += buoyancySampleOffset;
         ApplyBuoyancy(worldPoint, rb);
+
+        Vector3 velocity = rb.linearVelocity;
+        float horizontalSpeed = new Vector2(velocity.x, velocity.z).magnitude;
+        ApplyHorizontalLift(worldPoint, horizontalSpeed);
     }
 
     private void ApplyBuoyancy(Vector3 worldPoint, Rigidbody rb)
@@ -463,6 +488,7 @@ public class RopeWaterSurface : MonoBehaviour
 
     public void ApplySplash(Vector3 worldPoint, Vector3 worldVelocity)
     {
+        int segments = currentSegments;
         if (segments < 2)
         {
             return;
@@ -502,6 +528,28 @@ public class RopeWaterSurface : MonoBehaviour
         }
     }
 
+    private void ApplyHorizontalLift(Vector3 worldPoint, float horizontalSpeed)
+    {
+        int segments = currentSegments;
+        if (segments < 2 || horizontalLiftScale <= 0f || horizontalSpeed <= 0.0001f)
+        {
+            return;
+        }
+
+        Vector3 localPoint = transform.InverseTransformPoint(worldPoint);
+
+        GetBounds(out var center, out var size);
+        float xMin = center.x - size.x * 0.5f;
+        float xMax = center.x + size.x * 0.5f;
+        float t = (localPoint.x - xMin) / Mathf.Max(0.0001f, xMax - xMin);
+        int index = Mathf.Clamp(Mathf.RoundToInt(t * (segments - 1)), 0, segments - 1);
+
+        float speedT = Mathf.Clamp01(horizontalSpeed / Mathf.Max(0.01f, horizontalSpeedForMaxLift));
+        float lift = Mathf.Min(horizontalLiftMax, horizontalLiftScale * speedT);
+        ropeNearV[index] += lift / mass;
+        ropeFarV[index] += lift / mass;
+    }
+
     private float ApplyRandomSideImpulse(float impulse)
     {
         if (sideImpulseRandom <= 0f)
@@ -515,6 +563,12 @@ public class RopeWaterSurface : MonoBehaviour
 
     private float GetSurfaceHeight(Vector3 localPoint)
     {
+        int segments = currentSegments;
+        if (segments < 2)
+        {
+            return localPoint.y;
+        }
+
         GetBounds(out var center, out var size);
         float xMin = center.x - size.x * 0.5f;
         float xMax = center.x + size.x * 0.5f;

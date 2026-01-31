@@ -25,6 +25,7 @@ public class RopeWaterSurface : MonoBehaviour
     [SerializeField] private float horizontalLiftScale = 0.6f;
     [SerializeField] private float horizontalSpeedForMaxLift = 6f;
     [SerializeField] private float horizontalLiftMax = 1.5f;
+    [SerializeField] private float waterSpeedMultiplier = 0.5f;
     [SerializeField] private LayerMask affectLayers = ~0;
 
     [Header("Buoyancy")]
@@ -392,12 +393,60 @@ public class RopeWaterSurface : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         TrySplash(other);
+        TryWaterDamage(other);
+        TrySetWaterSpeedMultiplier(other, true);
     }
 
     private void OnTriggerStay(Collider other)
     {
         TrySplash(other);
         TryBuoyancy(other);
+        TryWaterDamage(other);
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        TrySetWaterSpeedMultiplier(other, false);
+    }
+
+    private void TryWaterDamage(Collider other)
+    {
+        if (((1 << other.gameObject.layer) & affectLayers) == 0)
+        {
+            return;
+        }
+
+        Health health = other.GetComponentInParent<Health>();
+        if (health == null)
+        {
+            return;
+        }
+
+        PlayerController player = other.GetComponentInParent<PlayerController>();
+        if (player != null && player.config != null && player.config.can_swim)
+        {
+            return;
+        }
+
+        health.CurrentHealth = 0;
+    }
+
+    private void TrySetWaterSpeedMultiplier(Collider other, bool inWater)
+    {
+        PlayerController player = other.GetComponentInParent<PlayerController>();
+        if (player == null)
+        {
+            return;
+        }
+
+        if (inWater)
+        {
+            player.SetSpeedMultiplier(waterSpeedMultiplier);
+        }
+        else
+        {
+            player.ResetSpeedMultiplier();
+        }
     }
 
     private void TrySplash(Collider other)
@@ -433,14 +482,15 @@ public class RopeWaterSurface : MonoBehaviour
 
         Vector3 worldPoint = other.bounds.center;
         worldPoint.y += buoyancySampleOffset;
-        ApplyBuoyancy(worldPoint, rb);
+        bool skipHorizontalDrag = other.GetComponentInParent<PlayerController>() != null;
+        ApplyBuoyancy(worldPoint, rb, skipHorizontalDrag);
 
         Vector3 velocity = rb.linearVelocity;
         float horizontalSpeed = new Vector2(velocity.x, velocity.z).magnitude;
         ApplyHorizontalLift(worldPoint, horizontalSpeed);
     }
 
-    private void ApplyBuoyancy(Vector3 worldPoint, Rigidbody rb)
+    private void ApplyBuoyancy(Vector3 worldPoint, Rigidbody rb, bool skipHorizontalDrag)
     {
         float waterTopY = GetWaterTopYWorld();
         float depth = waterTopY - worldPoint.y;
@@ -454,7 +504,7 @@ public class RopeWaterSurface : MonoBehaviour
         float force = Mathf.Clamp(upward + damping, -maxBuoyancyForce, maxBuoyancyForce);
         rb.AddForce(Vector3.up * force, ForceMode.Force);
 
-        if (waterQuadraticDrag > 0f)
+        if (!skipHorizontalDrag && waterQuadraticDrag > 0f)
         {
             float vx = rb.linearVelocity.x;
             if (Mathf.Abs(vx) > 0.0001f)

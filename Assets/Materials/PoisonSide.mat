@@ -32,10 +32,10 @@ Material:
     m_Ints: []
     m_Floats:
     - _ColorShiftSpeed: 1
-    - _ColorStrength: 0.61
-    - _DistortionScale: 10
+    - _ColorStrength: 0.69
+    - _DistortionScale: 20
     - _DistortionSpeed: 4.74
-    - _DistortionStrength: 0.003
+    - _DistortionStrength: 0.008
     - _FresnelPower: 3
     - _FresnelStrength: 0.35
     - _Opacity: 0.42
@@ -45,7 +45,7 @@ Material:
     m_Colors:
     - _ColorA: {r: 0.19999996, g: 0.6, b: 0.9, a: 1}
     - _ColorB: {r: 0, g: 0.29999998, b: 0.6, a: 1}
-    - _ColorTint: {r: 0.19999996, g: 0.6, b: 0.9, a: 1}
+    - _ColorTint: {r: 0.33412117, g: 0.9019608, b: 0.19999999, a: 1}
     - _DistortionSpeed: {r: 0.05, g: 0.03, b: 0, a: 0}
     - _DistortionSpeed2: {r: -0.02, g: 0.06, b: 0, a: 0}
     - _DistortionTiling: {r: 1, g: 1, b: 0, a: 0}

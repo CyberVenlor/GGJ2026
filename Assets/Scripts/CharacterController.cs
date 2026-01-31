@@ -27,6 +27,7 @@ public class PlayerController : MonoBehaviour
     private bool _isGrounded;
     private int _groundContacts;
     private float _moveInput;
+    private float _speedMultiplier = 1f;
     private bool _jumpQueued;
     private InputAction _moveAction;
     private InputAction _jumpAction;
@@ -133,7 +134,7 @@ public class PlayerController : MonoBehaviour
         _jumpQueued = false;
 
         Vector3 velocity = _rb.linearVelocity;
-        velocity.x = _moveInput * config.moveSpeed;
+        velocity.x = _moveInput * config.moveSpeed * _speedMultiplier;
         if (!_isGrounded)
         {
             if (velocity.x != 0)
@@ -150,6 +151,16 @@ public class PlayerController : MonoBehaviour
         {
             _stateMachine.CurrentState.FixedUpdate();
         }
+    }
+
+    public void SetSpeedMultiplier(float multiplier)
+    {
+        _speedMultiplier = Mathf.Max(0f, multiplier);
+    }
+
+    public void ResetSpeedMultiplier()
+    {
+        _speedMultiplier = 1f;
     }
 
     private void OnJump(InputAction.CallbackContext context)

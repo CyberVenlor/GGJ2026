@@ -33,7 +33,7 @@ Material:
     m_Floats:
     - _ColorShiftSpeed: 1
     - _ColorStrength: 0.61
-    - _DistortionScale: 10
+    - _DistortionScale: 15
     - _DistortionSpeed: 4.74
     - _DistortionStrength: 0.003
     - _FresnelPower: 3
